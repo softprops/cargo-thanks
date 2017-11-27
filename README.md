@@ -2,13 +2,17 @@
 
 Give thanks (in the form of [github stars](https://help.github.com/articles/about-stars/)) to your fellow Rustaceans
 
+![thanks](thanks.gif)
+
 ## Install
 
 This is intended to be installed as a [cargo](http://doc.crates.io/index.html) plugin
 
 ```bash
-$ cargo install cargo-thanks
+$ cargo install --force cargo-thanks
 ```
+
+(adding the `--force` upgrades to the latest version when installing)
 
 ### usage
 
