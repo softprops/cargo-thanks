@@ -25,4 +25,7 @@ Within any of your Cargo based Rust projects, run the following
 $ cargo thanks
 ```
 
+This will find all of your Cargo dependencies, find their github.com repository from metadata hosted on crates.io, and star their github repositories. This was
+inspired in part by medium's clapping button as a way to show thanks for someone elses work you've found enjoyment in.
+
 Doug Tangren (softprops) 2017
