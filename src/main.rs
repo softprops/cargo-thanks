@@ -20,7 +20,7 @@ extern crate hubcaps;
 use std::env;
 
 use cargo_metadata::Error as CargoError;
-use clap::App;
+use clap::{App, SubCommand};
 use futures::{Future, Stream};
 use futures::stream::futures_unordered;
 use hubcaps::{Credentials, Error as GithubError, Github};
@@ -48,14 +48,14 @@ quick_main!(run);
 fn run() -> Result<()> {
     drop(env_logger::init());
     // not actually parsing args for the moment
-    App::new(env!("CARGO_PKG_NAME"))
+    App::new("cargo").subcommand(
+        SubCommand::with_name("thanks")
         .version(env!("CARGO_PKG_VERSION"))
         .about(
             "Thanks rust lang dependencies on github.com
             this program assumes a github token stored in a GITHUB_TOKEN env variable"
             )
-
-        .get_matches();
+    ).get_matches();
     let mut core = Core::new()?;
     let github = match env::var("GITHUB_TOKEN") {
         Ok(token) => {
