@@ -1,6 +1,7 @@
 [package]
 name = "cargo-thanks"
 version = "0.1.0"
+description = "a cargo subcommand for giving thanks"
 authors = ["softprops <d.tangren@gmail.com>"]
 homepage = "https://github.com/softprops/cargo-thanks"
 repository = "https://github.com/softprops/cargo-thanks"
