@@ -17,10 +17,8 @@ extern crate url_serde;
 extern crate yansi;
 extern crate hubcaps;
 
-use std::env;
-
 use cargo_metadata::Error as CargoError;
-use clap::{App, SubCommand};
+use clap::{App, SubCommand, Arg, AppSettings};
 use futures::{Future, Stream};
 use futures::stream::futures_unordered;
 use hubcaps::{Credentials, Error as GithubError, Github};
@@ -32,6 +30,7 @@ use std::io::Error as IoError;
 use tokio_core::reactor::Core;
 use url::Url;
 use yansi::Paint;
+use std::result::Result as StdResult;
 
 error_chain! {
     foreign_links {
@@ -45,28 +44,40 @@ error_chain! {
 
 quick_main!(run);
 
+fn non_blank(arg: String) -> StdResult<(), String> {
+    if arg.is_empty() {
+        return Err("\n\n\tNo Github token was provided via --token or GITHUB_TOKEN env var".to_owned());
+    }
+    Ok(())
+}
+
 fn run() -> Result<()> {
     drop(env_logger::init());
     // not actually parsing args for the moment
-    App::new("cargo").subcommand(
-        SubCommand::with_name("thanks")
-        .version(env!("CARGO_PKG_VERSION"))
-        .about(
-            "Thanks rust lang dependencies on github.com
-            this program assumes a github token stored in a GITHUB_TOKEN env variable"
+    let matches = App::new("cargo-thanks")
+        .setting(AppSettings::SubcommandRequired)
+        .setting(AppSettings::DisableHelpSubcommand)
+        .bin_name("cargo")
+        .subcommand(
+            SubCommand::with_name("thanks")
+            .version(env!("CARGO_PKG_VERSION"))
+            .author(env!("CARGO_PKG_AUTHORS"))
+            .about(
+                "Thanks rust lang dependencies on github.com \n\
+                this program assumes a github token stored in a GITHUB_TOKEN env variable"
             )
+            .arg(Arg::from_usage("-t, --token [TOKEN] 'The Github OAuth token to use'")
+                .required(true)
+                .env("GITHUB_TOKEN")
+                .validator(non_blank))
     ).get_matches();
+    let thanks_matches = matches.subcommand_matches("thanks").unwrap();
     let mut core = Core::new()?;
-    let github = match env::var("GITHUB_TOKEN") {
-        Ok(token) => {
-            Github::new(
-                concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
-                Some(Credentials::Token(token)),
-                &core.handle(),
-            )
-        }
-        _ => return Err("GITHUB_TOKEN is required".into()),
-    };
+    let github = Github::new(
+        concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
+        Some(Credentials::Token(thanks_matches.value_of("token").unwrap().to_owned())),
+        &core.handle(),
+    );
 
     let metadata = cargo_metadata::metadata(None)?;
     let deps = metadata.packages.into_iter().fold(
