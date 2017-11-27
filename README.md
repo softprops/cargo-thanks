@@ -12,7 +12,10 @@ $ cargo install cargo-thanks
 
 ### usage
 
-Within any of your cargo based Rust projects, run the following
+Create a [github access token](https://github.com/settings/tokens) and
+store its value in an env variable named `GITHUB_TOKEN`
+
+Within any of your Cargo based Rust projects, run the following
 
 ```bash
 $ cargo thanks

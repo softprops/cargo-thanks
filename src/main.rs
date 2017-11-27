@@ -52,7 +52,7 @@ fn run() -> Result<()> {
         .version(env!("CARGO_PKG_VERSION"))
         .about(
             "Thanks rust lang dependencies on github.com
-            this program assumes a github token stored in an GITHUB_TOKEN env variable"
+            this program assumes a github token stored in a GITHUB_TOKEN env variable"
             )
 
         .get_matches();
