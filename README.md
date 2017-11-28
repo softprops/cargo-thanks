@@ -16,7 +16,7 @@ $ cargo install --force cargo-thanks
 
 ### usage
 
-Create a [github access token](https://github.com/settings/tokens) and
+Create a [github access token](https://github.com/settings/tokens) with the "public_repo" permission and
 store its value in an env variable named `GITHUB_TOKEN`
 
 Within any of your Cargo based Rust projects, run the following
