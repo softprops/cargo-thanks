@@ -28,4 +28,7 @@ $ cargo thanks
 This will find all of your Cargo dependencies, find their github.com repository from metadata hosted on crates.io, and star their github repositories. This was
 inspired in part by medium's clapping button as a way to show thanks for someone elses work you've found enjoyment in.
 
+If you're asking why did some dependencies get thanked and not others, the answer
+is that this plugin only supports github.com at the moment. Pull requests are welcome to add support for thanking crates hosted on other services.
+
 Doug Tangren (softprops) 2017
