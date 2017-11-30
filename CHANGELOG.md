@@ -1,3 +1,7 @@
+# 0.1.3
+
+* handle `.git` in crate repository urls
+
 # 0.1.2
 
 * cli [improvements](https://github.com/softprops/cargo-thanks/pull/5)

@@ -18,7 +18,7 @@ extern crate yansi;
 extern crate hubcaps;
 
 use cargo_metadata::Error as CargoError;
-use clap::{App, SubCommand, Arg, AppSettings};
+use clap::{App, AppSettings, Arg, SubCommand};
 use futures::{Future, Stream};
 use futures::stream::futures_unordered;
 use hubcaps::{Credentials, Error as GithubError, Github};
@@ -27,10 +27,10 @@ use hyper_tls::HttpsConnector;
 use serde_json::error::Error as SerdeError;
 use std::collections::HashSet;
 use std::io::Error as IoError;
+use std::result::Result as StdResult;
 use tokio_core::reactor::Core;
 use url::Url;
 use yansi::Paint;
-use std::result::Result as StdResult;
 
 error_chain! {
     foreign_links {
@@ -73,11 +73,14 @@ fn run() -> Result<()> {
     ).get_matches();
     let thanks_matches = matches.subcommand_matches("thanks").unwrap();
     let mut core = Core::new()?;
-    let github = Github::new(
-        concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
-        Some(Credentials::Token(thanks_matches.value_of("token").unwrap().to_owned())),
-        &core.handle(),
-    );
+    let github =
+        Github::new(
+            concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
+            Some(Credentials::Token(
+                thanks_matches.value_of("token").unwrap().to_owned(),
+            )),
+            &core.handle(),
+        );
 
     let metadata = cargo_metadata::metadata(None)?;
     let deps = metadata.packages.into_iter().fold(
@@ -122,23 +125,22 @@ fn run() -> Result<()> {
                     (c.name, repo.path().trim_left_matches("/").to_owned())
                 })
         })
-        .for_each(|(name, repo)| {
-            let r2 = repo.clone();
-            let comps = r2.splitn(2, "/").collect::<Vec<_>>();
-            debug!("starring {}/{}", comps[0], comps[1]);
+        .for_each(|(krate, path)| {
+            let (owner, repo) = repo_uri(path.clone());
+            debug!("starring {}/{}", owner, repo);
             github
                 .activity()
                 .stars()
-                .star(comps[0], comps[1])
+                .star(owner, repo)
                 .inspect(move |_| {
                     println!(
                         "💖 {} {}",
-                        name,
+                        krate,
                         Paint::rgb(
                             128,
                             128,
                             128,
-                            format!("github.com/{}", repo),
+                            format!("github.com/{}", path.as_str()),
                         ).to_string()
                     );
                 })
@@ -146,6 +148,15 @@ fn run() -> Result<()> {
         });
     core.run(f)
 
+}
+
+fn repo_uri<P>(path: P) -> (String, String)
+where
+    P: Into<String>,
+{
+    let clone = path.into().clone();
+    let parts = clone.splitn(2, "/").collect::<Vec<_>>();
+    (parts[0].into(), parts[1].trim_right_matches(".git").into())
 }
 
 #[derive(Debug, Deserialize)]
@@ -160,4 +171,18 @@ pub struct Crate {
     pub name: String,
     #[serde(deserialize_with = "url_serde::deserialize")]
     pub repository: Option<Url>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::repo_uri;
+    #[test]
+    fn repo_uri_handles_expected_case() {
+        assert_eq!(repo_uri("foo/bar"), ("foo".into(), "bar".into()))
+    }
+
+    #[test]
+    fn repo_uri_handles_git_ext() {
+        assert_eq!(repo_uri("foo/bar.git"), ("foo".into(), "bar".into()))
+    }
 }
