@@ -92,10 +92,9 @@ fn run() -> Result<()> {
         },
     );
 
-    let http = Client::configure()
-        .connector(HttpsConnector::new(4, &core.handle()).unwrap())
+    let http = Client::builder()
         .keep_alive(true)
-        .build(&core.handle());
+        .build::<_, hyper::Body>(HttpsConnector::new(4).unwrap());
 
     let crates = deps.iter().map(|dep| {
         http.get(
@@ -104,13 +103,15 @@ fn run() -> Result<()> {
                 .unwrap(),
         ).map_err(Error::from)
             .and_then(|response| {
-                response.body().concat2().map_err(Error::from).and_then(
-                    move |body| {
+                response
+                    .into_body()
+                    .concat2()
+                    .map_err(Error::from)
+                    .and_then(move |body| {
                         serde_json::from_slice::<Wrapper>(&body)
                             .map(|w| w.krate)
                             .map_err(Error::from)
-                    },
-                )
+                    })
             })
     });
     let f =
