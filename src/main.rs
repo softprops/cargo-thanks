@@ -3,24 +3,24 @@ extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate cargo_metadata;
+extern crate futures;
 extern crate hyper;
 extern crate hyper_tls;
-extern crate tokio_core;
-extern crate futures;
 extern crate serde_json;
+extern crate tokio_core;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
 extern crate serde_derive;
+extern crate hubcaps;
 extern crate url;
 extern crate url_serde;
 extern crate yansi;
-extern crate hubcaps;
 
 use cargo_metadata::Error as CargoError;
 use clap::{App, AppSettings, Arg, SubCommand};
-use futures::{Future, Stream};
 use futures::stream::futures_unordered;
+use futures::{Future, Stream};
 use hubcaps::{Credentials, Error as GithubError, Github};
 use hyper::{Client, Error as HttpError};
 use hyper_tls::HttpsConnector;
@@ -73,14 +73,13 @@ fn run() -> Result<()> {
     ).get_matches();
     let thanks_matches = matches.subcommand_matches("thanks").unwrap();
     let mut core = Core::new()?;
-    let github =
-        Github::new(
-            concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
-            Some(Credentials::Token(
-                thanks_matches.value_of("token").unwrap().to_owned(),
-            )),
-            &core.handle(),
-        );
+    let github = Github::new(
+        concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
+        Some(Credentials::Token(
+            thanks_matches.value_of("token").unwrap().to_owned(),
+        )),
+        &core.handle(),
+    );
 
     let metadata = cargo_metadata::metadata(None)?;
     let deps = metadata.packages.into_iter().fold(
@@ -114,40 +113,49 @@ fn run() -> Result<()> {
                 )
             })
     });
-    let f = futures_unordered(crates)
-        .filter_map(move |c| {
-            c.repository
-                .clone()
-                .into_iter()
-                .filter(move |repo| repo.host_str() == Some("github.com"))
-                .next()
-                .map(move |repo| {
-                    (c.name, repo.path().trim_left_matches("/").to_owned())
-                })
-        })
-        .for_each(|(krate, path)| {
-            let (owner, repo) = repo_uri(path.clone());
-            debug!("starring {}/{}", owner, repo);
-            github
-                .activity()
-                .stars()
-                .star(owner, repo)
-                .inspect(move |_| {
-                    println!(
-                        "💖 {} {}",
-                        krate,
-                        Paint::rgb(
-                            128,
-                            128,
-                            128,
-                            format!("github.com/{}", path.as_str()),
-                        ).to_string()
-                    );
-                })
-                .map_err(Error::from)
-        });
+    let f =
+        futures_unordered(crates)
+            .filter_map(move |c| {
+                c.repository
+                    .clone()
+                    .into_iter()
+                    .filter(move |repo| repo.host_str() == Some("github.com"))
+                    .next()
+                    .map(move |repo| {
+                        (c.name, repo.path().trim_left_matches("/").to_owned())
+                    })
+            })
+            .for_each(|(krate, path)| {
+                let (owner, repo) = repo_uri(path.clone());
+                debug!("starring {}/{}", owner, repo);
+                github.activity().stars().star(owner, repo).then(
+                    move |result| match result {
+                        Ok(v) => {
+                            println!(
+                                "💖 {} {}",
+                                krate,
+                                Paint::rgb(
+                                    128,
+                                    128,
+                                    128,
+                                    format!("github.com/{}", path.as_str()),
+                                ).to_string()
+                            );
+                            Ok(v)
+                        }
+                        Err(e) => {
+                            println!(
+                                "💔 {} {}",
+                                krate,
+                                Paint::rgb(128, 128, 128, format!("{}", e),)
+                                    .to_string()
+                            );
+                            Err(e.into())
+                        }
+                    },
+                )
+            });
     core.run(f)
-
 }
 
 fn repo_uri<P>(path: P) -> (String, String)
