@@ -122,7 +122,8 @@ fn run() -> Result<()> {
                     .filter(move |repo| repo.host_str() == Some("github.com"))
                     .next()
                     .map(move |repo| {
-                        (c.name, repo.path().trim_left_matches("/").to_owned())
+                        debug!("{}", repo.path());
+                        (c.name, repo.path().trim_matches('/').to_owned())
                     })
             })
             .for_each(|(krate, path)| {
