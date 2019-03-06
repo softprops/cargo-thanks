@@ -52,7 +52,7 @@ fn non_blank(arg: String) -> StdResult<(), String> {
 }
 
 fn run() -> Result<()> {
-    drop(env_logger::init());
+    env_logger::init();
     // not actually parsing args for the moment
     let matches = App::new("cargo-thanks")
         .setting(AppSettings::SubcommandRequired)
