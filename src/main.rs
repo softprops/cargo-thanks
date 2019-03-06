@@ -82,15 +82,16 @@ fn run() -> Result<()> {
     );
 
     let metadata = cargo_metadata::metadata(None)?;
-    let deps = metadata.packages.into_iter().fold(
-        HashSet::new(),
-        |mut acc, pkg| {
-            for dep in pkg.dependencies {
-                acc.insert(dep.name);
-            }
-            acc
-        },
-    );
+    let deps =
+        metadata
+            .packages
+            .into_iter()
+            .fold(HashSet::new(), |mut acc, pkg| {
+                for dep in pkg.dependencies {
+                    acc.insert(dep.name);
+                }
+                acc
+            });
 
     let http = Client::builder()
         .keep_alive(true)
@@ -101,18 +102,19 @@ fn run() -> Result<()> {
             format!("https://crates.io/api/v1/crates/{dep}", dep = dep)
                 .parse()
                 .unwrap(),
-        ).map_err(Error::from)
-            .and_then(|response| {
-                response
-                    .into_body()
-                    .concat2()
-                    .map_err(Error::from)
-                    .and_then(move |body| {
-                        serde_json::from_slice::<Wrapper>(&body)
-                            .map(|w| w.krate)
-                            .map_err(Error::from)
-                    })
-            })
+        )
+        .map_err(Error::from)
+        .and_then(|response| {
+            response
+                .into_body()
+                .concat2()
+                .map_err(Error::from)
+                .and_then(move |body| {
+                    serde_json::from_slice::<Wrapper>(&body)
+                        .map(|w| w.krate)
+                        .map_err(Error::from)
+                })
+        })
     });
     let f =
         futures_unordered(crates)
@@ -141,7 +143,8 @@ fn run() -> Result<()> {
                                     128,
                                     128,
                                     format!("github.com/{}", path.as_str()),
-                                ).to_string()
+                                )
+                                .to_string()
                             );
                             Ok(v)
                         }
