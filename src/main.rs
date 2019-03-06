@@ -81,7 +81,7 @@ fn run() -> Result<()> {
         &core.handle(),
     );
 
-    let metadata = cargo_metadata::metadata(None)?;
+    let metadata = cargo_metadata::MetadataCommand::new().exec()?;
     let deps =
         metadata
             .packages
