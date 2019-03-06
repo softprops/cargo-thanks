@@ -169,7 +169,7 @@ where
 {
     let clone = path.into().clone();
     let parts = clone.splitn(2, "/").collect::<Vec<_>>();
-    (parts[0].into(), parts[1].trim_right_matches(".git").into())
+    (parts[0].into(), parts[1].trim_end_matches(".git").into())
 }
 
 #[derive(Debug, Deserialize)]
