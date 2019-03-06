@@ -168,7 +168,7 @@ where
     P: Into<String>,
 {
     let clone = path.into().clone();
-    let parts = clone.splitn(2, "/").collect::<Vec<_>>();
+    let parts = clone.splitn(2, '/').collect::<Vec<_>>();
     (parts[0].into(), parts[1].trim_end_matches(".git").into())
 }
 
