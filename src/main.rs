@@ -122,8 +122,7 @@ fn run() -> Result<()> {
                 c.repository
                     .clone()
                     .into_iter()
-                    .filter(move |repo| repo.host_str() == Some("github.com"))
-                    .next()
+                    .find(move |repo| repo.host_str() == Some("github.com"))
                     .map(move |repo| {
                         debug!("{}", repo.path());
                         (c.name, repo.path().trim_matches('/').to_owned())
