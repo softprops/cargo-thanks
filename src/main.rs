@@ -134,7 +134,7 @@ fn run() -> Result<()> {
                 debug!("starring {}/{}", owner, repo);
                 github.activity().stars().star(owner, repo).then(
                     move |result| match result {
-                        Ok(v) => {
+                        Ok(()) => {
                             println!(
                                 "💖 {} {}",
                                 krate,
@@ -146,7 +146,7 @@ fn run() -> Result<()> {
                                 )
                                 .to_string()
                             );
-                            Ok(v)
+                            Ok(())
                         }
                         Err(e) => {
                             println!(
