@@ -52,7 +52,7 @@ fn non_blank(arg: String) -> StdResult<(), String> {
 }
 
 fn run() -> Result<()> {
-    drop(env_logger::init());
+    env_logger::init();
     // not actually parsing args for the moment
     let matches = App::new("cargo-thanks")
         .setting(AppSettings::SubcommandRequired)
@@ -81,16 +81,17 @@ fn run() -> Result<()> {
         &core.handle(),
     );
 
-    let metadata = cargo_metadata::metadata(None)?;
-    let deps = metadata.packages.into_iter().fold(
-        HashSet::new(),
-        |mut acc, pkg| {
-            for dep in pkg.dependencies {
-                acc.insert(dep.name);
-            }
-            acc
-        },
-    );
+    let metadata = cargo_metadata::MetadataCommand::new().exec()?;
+    let deps =
+        metadata
+            .packages
+            .into_iter()
+            .fold(HashSet::new(), |mut acc, pkg| {
+                for dep in pkg.dependencies {
+                    acc.insert(dep.name);
+                }
+                acc
+            });
 
     let http = Client::builder()
         .keep_alive(true)
@@ -101,18 +102,19 @@ fn run() -> Result<()> {
             format!("https://crates.io/api/v1/crates/{dep}", dep = dep)
                 .parse()
                 .unwrap(),
-        ).map_err(Error::from)
-            .and_then(|response| {
-                response
-                    .into_body()
-                    .concat2()
-                    .map_err(Error::from)
-                    .and_then(move |body| {
-                        serde_json::from_slice::<Wrapper>(&body)
-                            .map(|w| w.krate)
-                            .map_err(Error::from)
-                    })
-            })
+        )
+        .map_err(Error::from)
+        .and_then(|response| {
+            response
+                .into_body()
+                .concat2()
+                .map_err(Error::from)
+                .and_then(move |body| {
+                    serde_json::from_slice::<Wrapper>(&body)
+                        .map(|w| w.krate)
+                        .map_err(Error::from)
+                })
+        })
     });
     let f =
         futures_unordered(crates)
@@ -120,8 +122,7 @@ fn run() -> Result<()> {
                 c.repository
                     .clone()
                     .into_iter()
-                    .filter(move |repo| repo.host_str() == Some("github.com"))
-                    .next()
+                    .find(move |repo| repo.host_str() == Some("github.com"))
                     .map(move |repo| {
                         debug!("{}", repo.path());
                         (c.name, repo.path().trim_matches('/').to_owned())
@@ -132,7 +133,7 @@ fn run() -> Result<()> {
                 debug!("starring {}/{}", owner, repo);
                 github.activity().stars().star(owner, repo).then(
                     move |result| match result {
-                        Ok(v) => {
+                        Ok(()) => {
                             println!(
                                 "💖 {} {}",
                                 krate,
@@ -141,9 +142,10 @@ fn run() -> Result<()> {
                                     128,
                                     128,
                                     format!("github.com/{}", path.as_str()),
-                                ).to_string()
+                                )
+                                .to_string()
                             );
-                            Ok(v)
+                            Ok(())
                         }
                         Err(e) => {
                             println!(
@@ -165,8 +167,8 @@ where
     P: Into<String>,
 {
     let clone = path.into().clone();
-    let parts = clone.splitn(2, "/").collect::<Vec<_>>();
-    (parts[0].into(), parts[1].trim_right_matches(".git").into())
+    let parts = clone.splitn(2, '/').collect::<Vec<_>>();
+    (parts[0].into(), parts[1].trim_end_matches(".git").into())
 }
 
 #[derive(Debug, Deserialize)]
